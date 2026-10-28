@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>No-Helmet Detector AI</title>
+
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: #070d1c;
+            color: #e8eefc;
+            font-family: Arial, sans-serif
+        }
+
+        header {
+            padding: 16px 22px;
+            background: #111a2c;
+            border-bottom: 1px solid #29354b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .logo {
+            background: #291424;
+            color: #ff426a;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 23px
+        }
+
+        h2 {
+            font-size: 17px;
+            margin: 0 0 5px
+        }
+
+        .sub {
+            font-size: 12px;
+            color: #93a4c0
+        }
+
+        .badge {
+            font-size: 12px;
+            color: #ffc64b
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(270px, 1fr);
+            gap: 20px
+        }
+
+        .card {
+            background: #111a2c;
+            border: 1px solid #29354b;
+            border-radius: 14px;
+            overflow: hidden
+        }
+
+        .camera {
+            height: 430px;
+            background: #020617;
+            position: relative;
+            display: grid;
+            place-items: center
+        }
+
+        #video,
+        #overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain
+        }
+
+        #video {
+            display: none
+        }
+
+        #overlay {
+            pointer-events: none
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #93a4c0;
+            padding: 20px
+        }
+
+        .placeholder strong {
+            display: block;
+            color: white;
+            margin: 12px
+        }
+
+        .toolbar {
+            padding: 13px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        button,
+        select {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #384760;
+            background: #202c40;
+            color: white;
+            cursor: pointer
+        }
+
+        .primary {
+            background: #e91e50;
+            border-color: #e91e50
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .stats {
+            font-size: 12px;
+            color: #aabbd3;
+            margin-left: auto
+        }
+
+        .green {
+            color: #42e6a1
+        }
+
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 18px
+        }
+
+        .panel {
+            padding: 18px
+        }
+
+        .panel h3 {
+            font-size: 13px;
+            color: #b7c8e1;
+            margin: 0 0 17px
+        }
+
+        .count {
+            text-align: center;
+            color: #ff4168;
+            font-size: 52px;
+            font-weight: bold
+        }
+
+        .note {
+            text-align: center;
+            font-size: 12px;
+            color: #a7b8d0
+        }
+
+        #message {
+            font-size: 12px;
+            color: #a7b8d0;
+            line-height: 1.6;
+            overflow-wrap: anywhere
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            margin: 18px 0 10px
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #ff4168
+        }
+
+        #classList {
+            max-height: 250px;
+            overflow: auto;
+            font-size: 12px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            color: #cbd7e9
+        }
+
+        #detections {
+            font-size: 12px;
+            line-height: 1.8;
+            white-space: pre-wrap
+        }
+
+        @media(max-width:760px) {
+            main {
+                grid-template-columns: 1fr;
+                margin: 14px auto;
+                gap: 14px
+            }
+
+            .camera {
+                height: 320px
+            }
+
+            header {
+                padding: 13px
+            }
+
+            .stats {
+                margin-left: 0;
+                width: 100%
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">
+            <div class="logo">⌁</div>
+            <div>
+                <h2>No-Helmet Detector AI</h2>
+                <div class="sub">Live Camera · ONNX Runtime</div>
+            </div>
+        </div>
+        <div id="modelStatus" class="badge">● Memuat model...</div>
+    </header>
+
+    <main>
+        <section class="card">
+            <div class="camera">
+                <video id="video" autoplay muted playsinline></video>
+                <canvas id="overlay"></canvas>
+                <div class="placeholder" id="placeholder">
+                    <div style="font-size:36px">📷</div>
+                    <strong>Kamera Belum Aktif</strong>
+                    <span class="sub">Aktifkan kamera untuk deteksi real-time.</span>
+                </div>
+            </div>
+            <div class="toolbar">
+                <button id="cameraBtn" class="primary" disabled>Aktifkan Kamera</button>
+                <select id="cameraChoice" aria-label="Pilih kamera">
+                    <option value="environment">Kamera Belakang</option>
+                    <option value="user">Kamera Depan</option>
+                </select>
+                <div class="stats">
+                    FPS: <span id="fps" class="green">0</span>
+                    · Inferensi: <span id="inference" class="green">0 ms</span>
+                </div>
+
+            </div>
+        </section>
+
+        <aside>
+            <section class="card panel">
+                <h3>⚠ TOTAL OBJEK TERDETEKSI</h3>
+                <div id="count" class="count">0</div>
+                <p class="note">Jumlah objek unik selama sesi kamera</p>
+            </section>
+
+            <section class="card panel">
+                <h3>⚙ PENGATURAN</h3>
+                <div id="message">Memuat ONNX Runtime...</div>
+
+                <label for="confidence">
+                    Confidence Threshold
+                    <span id="confidenceValue" style="float:right">50%</span>
+                </label>
+                <input id="confidence" type="range" min="10" max="95" value="50">
+
+                <hr style="border-color:#29354b;margin:20px 0">
+
+                <h3>HASIL DETEKSI SAAT INI</h3>
+                <div id="detections">Belum ada deteksi.</div>
+
+                <hr style="border-color:#29354b;margin:20px 0">
+
+                <h3>CLASS DARI METADATA MODEL</h3>
+                <div id="classList">Memeriksa metadata ONNX...</div>
+            </section>
+        </aside>
+    </main>
+
+    <script>
+
+        (function () {
+            'use strict';
+
+            /* Konfigurasi model: tidak ada input model pada halaman. */
+            var ORT_SCRIPT_URL =
+                'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js';
+            var ORT_WASM_BASE =
+                'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+            var MODEL_URL =
+                // 'https://huggingface.co/Kalray/yolov8/resolve/main/yolov8n.onnx';
+                window.location.origin + '/model.onnx';
+
+
+            var CACHE_NAME = 'no-helmet-onnx-cache-v2';
+            var SIZE = 640;
+            var IOU_THRESHOLD = 0.50;
+
+            var session = null;
+            var stream = null;
+            var running = false;
+            var busy = false;
+            var generation = 0;
+            var lastFrame = 0;
+            var fpsFrames = 0;
+            var fpsStart = performance.now();
+            const liveCountElement = document.getElementById('liveObjectCount');
+            var uniqueCount = 0;
+            var nextId = 1;
+            var previousObjects = [];
+            var classNames = ['nohelm'];
+
+            var $ = function (id) { return document.getElementById(id); };
+            var video = $('video');
+            var canvas = $('overlay');
+            var ctx = canvas.getContext('2d');
+
+            function loadScript(src) {
+                return new Promise(function (resolve, reject) {
+                    var script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = function () { reject(new Error('Gagal memuat ONNX Runtime')); };
+                    document.head.appendChild(script);
+                });
+            }
+
+            async function loadModel() {
+                var buffer = null;
+                var cacheKey = new URL(MODEL_URL, location.href).href;
+
+                /* Ambil file ONNX dari cache lokal jika sudah pernah diunduh. */
+                if ('caches' in window) {
+                    try {
+                        var cache = await caches.open(CACHE_NAME);
+                        var cached = await cache.match(cacheKey);
+
+                        if (cached) {
+                            buffer = await cached.arrayBuffer();
+                            $('message').textContent = 'Model diambil dari cache lokal.';
+                        }
+                    } catch (e) {
+                        console.warn('Cache tidak tersedia:', e);
+                    }
+                }
+
+                /* Unduh hanya jika cache belum ada. */
+                if (!buffer) {
+                    $('message').textContent = 'Mengunduh model untuk pertama kali...';
+
+                    var response = await fetch(MODEL_URL);
+                    if (!response.ok) throw new Error('Unduhan model gagal: HTTP ' + response.status);
+
+                    buffer = await response.arrayBuffer();
+
+                    if (!buffer.byteLength) throw new Error('File model kosong.');
+
+                    if ('caches' in window) {
+                        try {
+                            var cache = await caches.open(CACHE_NAME);
+                            await cache.put(cacheKey, new Response(buffer.slice(0), {
+                                headers: { 'Content-Type': 'application/octet-stream' }
+                            }));
+                        } catch (e) {
+                            console.warn('Tidak dapat menyimpan cache:', e);
+                        }
+                    }
+                }
+
+                $('message').textContent = 'Membuat sesi inferensi ONNX...';
+
+                return await ort.InferenceSession.create(buffer, {
+                    executionProviders: ['wasm']
+                });
+            }
+
+            /* Metadata nama kelas hanya tersedia jika disimpan saat ekspor ONNX. */
+            function readClassNames(sess) {
+                var metadata = sess.metadata || {};
+                var custom = metadata.customMetadataMap || {};
+
+                for (var key of ['names', 'class_names', 'classes']) {
+                    if (!custom[key]) continue;
+
+                    try {
+                        var parsed = JSON.parse(custom[key]);
+
+                        if (Array.isArray(parsed)) return parsed;
+
+                        if (parsed && typeof parsed === 'object') {
+                            return Object.keys(parsed)
+                                .sort(function (a, b) { return Number(a) - Number(b); })
+                                .map(function (k) { return parsed[k]; });
+                        }
+                    } catch (e) {
+                        console.warn('Metadata class tidak berbentuk JSON:', key);
+                    }
+                }
+                return null;
+            }
+
+            function showClassNames() {
+                if (!classNames) {
+                    $('classList').textContent =
+                        'Nama class tidak ditemukan di metadata ONNX. ' +
+                        'Model tidak menyediakan daftar nama kelas yang bisa dibaca langsung.';
+                    return;
+                }
+
+                $('classList').textContent = classNames.map(function (name, i) {
+                    return i + '. ' + name;
+                }).join('\n');
+            }
+
+            function className(id) {
+                return classNames && classNames[id] !== undefined
+                    ? String(classNames[id])
+                    : 'Class ' + id;
+            }
+
+            function iou(a, b) {
+                var x1 = Math.max(a.x1, b.x1), y1 = Math.max(a.y1, b.y1);
+                var x2 = Math.min(a.x2, b.x2), y2 = Math.min(a.y2, b.y2);
+                var inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+                var aa = Math.max(0, a.x2 - a.x1) * Math.max(0, a.y2 - a.y1);
+                var ab = Math.max(0, b.x2 - b.x1) * Math.max(0, b.y2 - b.y1);
+                return inter / (aa + ab - inter + 1e-7);
+            }
+
+            function nms(items) {
+                items.sort(function (a, b) { return b.score - a.score; });
+                var out = [];
+                while (items.length) {
+                    var best = items.shift();
+                    out.push(best);
+                    items = items.filter(function (x) {
+                        return x.classId !== best.classId || iou(best, x) < IOU_THRESHOLD;
+                    });
+                }
+                return out;
+            }
+
+            function parseOutput(output, scale, padX, padY, W, H) {
+                var dims = output.dims, data = output.data;
+                if (dims.length !== 3) throw new Error('Format output model bukan tensor YOLO 3D.');
+
+                var features, rows, transposed;
+                if (dims[1] < dims[2]) {
+                    features = dims[1]; rows = dims[2]; transposed = true;
+                } else {
+                    rows = dims[1]; features = dims[2]; transposed = false;
+                }
+
+                function val(r, c) {
+                    return transposed ? data[c * rows + r] : data[r * features + c];
+                }
+
+                var found = [], minScore = Number($('confidence').value) / 100;
+
+                for (var r = 0; r < rows; r++) {
+                    var score = 0, classId = -1;
+                    for (var c = 4; c < features; c++) {
+                        if (val(r, c) > score) {
+                            score = val(r, c);
+                            classId = c - 4;
+                        }
+                    }
+                    if (score < minScore) continue;
+
+                    var cx = val(r, 0), cy = val(r, 1), w = val(r, 2), h = val(r, 3);
+                    var x1 = Math.max(0, Math.min(W, (cx - w / 2 - padX) / scale));
+                    var y1 = Math.max(0, Math.min(H, (cy - h / 2 - padY) / scale));
+                    var x2 = Math.max(0, Math.min(W, (cx + w / 2 - padX) / scale));
+                    var y2 = Math.max(0, Math.min(H, (cy + h / 2 - padY) / scale));
+
+                    if (x2 > x1 && y2 > y1) {
+                        found.push({ x1: x1, y1: y1, x2: x2, y2: y2, score: score, classId: classId });
+                    }
+                }
+                return nms(found);
+            }
+
+            var inputCanvas = document.createElement('canvas');
+            inputCanvas.width = SIZE;
+            inputCanvas.height = SIZE;
+            var inputCtx = inputCanvas.getContext('2d', { willReadFrequently: true });
+
+            async function infer() {
+                var W = video.videoWidth, H = video.videoHeight;
+                if (!W || !H) return [];
+
+                var scale = Math.min(SIZE / W, SIZE / H);
+                var rw = Math.round(W * scale), rh = Math.round(H * scale);
+                var px = (SIZE - rw) / 2, py = (SIZE - rh) / 2;
+
+                inputCtx.fillStyle = 'rgb(114,114,114)';
+                inputCtx.fillRect(0, 0, SIZE, SIZE);
+                inputCtx.drawImage(video, 0, 0, W, H, px, py, rw, rh);
+
+                var pixels = inputCtx.getImageData(0, 0, SIZE, SIZE).data;
+                var plane = SIZE * SIZE;
+                var data = new Float32Array(3 * plane);
+
+                for (var i = 0; i < plane; i++) {
+                    var p = i * 4;
+                    data[i] = pixels[p] / 255;
+                    data[plane + i] = pixels[p + 1] / 255;
+                    data[2 * plane + i] = pixels[p + 2] / 255;
+                }
+
+                var feeds = {};
+                feeds[session.inputNames[0]] = new ort.Tensor(
+                    'float32', data, [1, 3, SIZE, SIZE]
+                );
+
+                var outputs = await session.run(feeds);
+                return parseOutput(outputs[session.outputNames[0]], scale, px, py, W, H);
+            }
+
+            function track(dets) {
+                var used = {};
+
+                dets.forEach(function (d) {
+                    var best = null, bestScore = 0.25;
+
+                    previousObjects.forEach(function (old) {
+                        if (used[old.id] || old.classId !== d.classId) return;
+                        var score = iou(d, old);
+                        if (score > bestScore) { best = old; bestScore = score; }
+                    });
+
+                    if (best) {
+                        d.id = best.id;
+                        used[best.id] = true;
+                    } else {
+                        d.id = nextId++;
+                        uniqueCount++;
+                    }
+                });
+
+                previousObjects = dets.map(function (d) {
+                    return { id: d.id, x1: d.x1, y1: d.y1, x2: d.x2, y2: d.y2, classId: d.classId };
+                });
+                $('count').textContent = uniqueCount;
+            }
+
+            function draw(dets) {
+                if (!video.videoWidth) return;
+                if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                var lines = [];
+
+                dets.forEach(function (d) {
+                    var name = className(d.classId);
+                    var label = name + ' ' + (d.score * 100).toFixed(0) + '%';
+                    var font = Math.max(13, canvas.width / 65);
+                    ctx.font = 'bold ' + font + 'px Arial';
+                    var h = font + 10, w = ctx.measureText(label).width + 12;
+                    var ly = Math.max(0, d.y1 - h);
+
+                    ctx.strokeStyle = '#ff315d';
+                    ctx.lineWidth = Math.max(2, canvas.width / 500);
+                    ctx.strokeRect(d.x1, d.y1, d.x2 - d.x1, d.y2 - d.y1);
+
+                    ctx.fillStyle = '#ff315d';
+                    ctx.fillRect(d.x1, ly, w, h);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(label, d.x1 + 6, ly + h - 5);
+
+                    lines.push(name + ' — ' + (d.score * 100).toFixed(1) + '%');
+                });
+
+                $('detections').textContent = lines.length ? lines.join('\n') : 'Tidak ada objek terdeteksi.';
+            }
+
+            async function loop() {
+                if (!running) return;
+                requestAnimationFrame(loop);
+
+                if (busy || !session || video.readyState < 2) return;
+                var now = performance.now();
+                if (now - lastFrame < 40) return;
+                lastFrame = now;
+                busy = true;
+
+                try {
+                    var start = performance.now();
+                    var dets = await infer();
+                    $('inference').textContent = Math.round(performance.now() - start) + ' ms';
+
+                    track(dets);
+                    draw(dets);
+
+                    fpsFrames++;
+                    if (now - fpsStart >= 1000) {
+                        $('fps').textContent = fpsFrames;
+                        fpsFrames = 0;
+                        fpsStart = now;
+                    }
+
+
+
+                    if (liveCountElement) {
+                        liveCountElement.textContent = detections.length;
+                    }
+                } catch (e) {
+                    $('message').textContent = 'Deteksi gagal: ' + e.message;
+                    console.error(e);
+                } finally {
+                    busy = false;
+                }
+            }
+
+            async function startCamera() {
+                var current = ++generation;
+
+                try {
+                    $('cameraBtn').disabled = true;
+                    $('message').textContent = 'Meminta izin kamera...';
+
+                    var newStream = await navigator.mediaDevices.getUserMedia({
+                        audio: false,
+                        video: {
+                            facingMode: { ideal: $('cameraChoice').value },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+
+                    if (current !== generation) {
+                        newStream.getTracks().forEach(function (t) { t.stop(); });
+                        return;
+                    }
+
+                    stream = newStream;
+                    video.srcObject = stream;
+                    await video.play();
+
+                    $('placeholder').style.display = 'none';
+                    video.style.display = 'block';
+
+                    running = true;
+                    $('cameraBtn').textContent = 'Matikan Kamera';
+                    $('message').textContent = 'Kamera aktif. Deteksi berjalan real-time.';
+                    requestAnimationFrame(loop);
+
+                } catch (e) {
+                    $('message').textContent = 'Kamera gagal: ' + e.message;
+                } finally {
+                    if (current === generation) $('cameraBtn').disabled = false;
+                }
+            }
+
+            function stopCamera() {
+                generation++;
+                running = false;
+
+                if (stream) {
+                    stream.getTracks().forEach(function (t) { t.stop(); });
+                    stream = null;
+                }
+
+                video.srcObject = null;
+                video.style.display = 'none';
+                $('placeholder').style.display = 'block';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                $('cameraBtn').textContent = 'Aktifkan Kamera';
+                $('fps').textContent = '0';
+                $('inference').textContent = '0 ms';
+                $('detections').textContent = 'Belum ada deteksi.';
+                $('message').textContent = 'Kamera dimatikan.';
+                previousObjects = [];
+                busy = false;
+            }
+
+            $('cameraBtn').addEventListener('click', function () {
+                if (running) stopCamera();
+                else startCamera();
+            });
+
+            $('cameraChoice').addEventListener('change', function () {
+                if (running) {
+                    stopCamera();
+                    startCamera();
+                }
+            });
+
+            $('confidence').addEventListener('input', function () {
+                $('confidenceValue').textContent = this.value + '%';
+            });
+
+            async function init() {
+                try {
+                    await loadScript(ORT_SCRIPT_URL);
+                    ort.env.wasm.wasmPaths = ORT_WASM_BASE;
+                    ort.env.wasm.numThreads = 1;
+
+                    session = await loadModel();
+
+                    // classNames = readClassNames(session);
+                    showClassNames();
+
+                    $('modelStatus').textContent = '● Model siap';
+                    $('modelStatus').style.color = '#42e6a1';
+                    $('message').textContent = 'Model siap. Aktifkan kamera.';
+                    $('cameraBtn').disabled = false;
+
+                } catch (e) {
+                    $('modelStatus').textContent = '● Model gagal dimuat';
+                    $('message').textContent = 'Error: ' + e.message;
+                    console.error(e);
+                }
+            }
+
+            init();
+        })();
+    </script>
+</body>
+
+</html>
