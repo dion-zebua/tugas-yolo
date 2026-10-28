@@ -302,6 +302,8 @@
 
     <script>
 
+        console.log(window.location.origin + '/tugas-yolo/model.onnx');
+
         (function () {
             'use strict';
 
@@ -313,9 +315,8 @@
             var MODEL_URL = window.location.hostname === '127.0.0.1' ||
                 window.location.hostname === 'localhost'
                 ? window.location.origin + '/model.onnx'
-                : window.location.origin + 'model.onnx';
+                : window.location.origin + '/tugas-yolo/model.onnx';
 
-            console.log(MODEL_URL);
 
 
 
