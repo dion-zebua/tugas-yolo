@@ -312,8 +312,11 @@
                 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
             var MODEL_URL = window.location.hostname === '127.0.0.1' ||
                 window.location.hostname === 'localhost'
-                ? '/model.onnx'
-                : '/tugas-yolo/model.onnx';
+                ? window.location.origin + '/model.onnx'
+                : window.location.origin + 'model.onnx';
+
+            console.log(MODEL_URL);
+
 
 
             var CACHE_NAME = 'no-helmet-onnx-cache-v2';
