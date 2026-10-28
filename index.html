@@ -302,7 +302,6 @@
 
     <script>
 
-        console.log(window.location.origin + '/tugas-yolo/model.onnx');
 
         (function () {
             'use strict';
@@ -312,10 +311,12 @@
                 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js';
             var ORT_WASM_BASE =
                 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
-            var MODEL_URL = window.location.hostname === '127.0.0.1' ||
-                window.location.hostname === 'localhost'
-                ? window.location.origin + '/model.onnx'
-                : window.location.origin + '/tugas-yolo/model.onnx';
+            // var MODEL_URL = window.location.hostname === '127.0.0.1' ||
+            //     window.location.hostname === 'localhost'
+            //     ? window.location.origin + '/model.onnx'
+            //     : window.location.origin + '/tugas-yolo/model.onnx'
+            // ;
+            var MODEL_URL = 'https://github.com/dion-zebua/tugas-yolo/model.onnx'
 
 
 
