@@ -86,7 +86,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            object-fit: contain
+            object-fit: cover;
         }
 
         #video {
@@ -283,9 +283,9 @@
 
                 <label for="confidence">
                     Confidence Threshold
-                    <span id="confidenceValue" style="float:right">50%</span>
+                    <span id="confidenceValue" style="float:right">10%</span>
                 </label>
-                <input id="confidence" type="range" min="10" max="95" value="50">
+                <input id="confidence" type="range" min="10" max="95" value="10">
 
                 <hr style="border-color:#29354b;margin:20px 0">
 
@@ -317,7 +317,6 @@
             //     : window.location.origin + '/tugas-yolo/model.onnx'
             // ;
             var MODEL_URL = 'https://dion-zebua.github.io/tugas-yolo/model.onnx'
-
 
 
 
